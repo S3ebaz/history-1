@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ecos de México · Línea de Tiempo Interactiva</title>
+<meta name="description" content="Línea de tiempo interactiva de la Historia de México: desde las culturas prehispánicas hasta el México contemporáneo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bitter:wght@500;700;800&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#E9E1CB;
+    --paper-deep:#DED2AF;
+    --paper-card:#F2ECD9;
+    --ink:#2A241E;
+    --ink-soft:#5C5142;
+    --rule:rgba(42,36,30,.22);
+    --oxblood:#7A2226; --oxblood-bg:#F1DEDC;
+    --brass:#6B4E14; --brass-bg:#F1E6C9;
+    --bottle:#24402A; --bottle-bg:#DCE7DE;
+    --indigo:#263759; --indigo-bg:#DEE3EE;
+    --terracotta:#8B4513; --terracotta-bg:#F5E6D3;
+    --gold:#8B6914; --gold-bg:#F5F0D8;
+    --slate:#3A4A5C; --slate-bg:#E4E9EF;
+    --font-display:'Bitter',Georgia,'Times New Roman',serif;
+    --font-body:'Lora',Georgia,'Times New Roman',serif;
+    --font-mono:'Space Mono','Courier New',monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){
+    html{scroll-behavior:auto}
+    *{animation-duration:.001ms !important;transition-duration:.001ms !important}
+  }
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(ellipse at 12% -10%, rgba(255,255,255,.5), transparent 45%),
+      radial-gradient(ellipse at 100% 0%, rgba(0,0,0,.05), transparent 40%);
+  }
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  a{color:inherit}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    max-width:960px;
+    margin:0 auto;
+    padding:3.2rem 2rem 1.8rem;
+  }
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin:0 0 .9rem;
+  }
+  .eyebrow::before{content:'§ '}
+  h1{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:3.4rem;
+    line-height:1.05;
+    letter-spacing:-.01em;
+    margin:0 0 .4rem;
+    color:var(--ink);
+  }
+  h1 em{
+    display:block;
+    font-family:var(--font-body);
+    font-style:italic;
+    font-weight:500;
+    font-size:.40em;
+    color:var(--oxblood);
+    margin-top:.3em;
+    letter-spacing:0;
+  }
+  .dek{
+    font-size:1.08rem;
+    color:var(--ink-soft);
+    max-width:58ch;
+    margin:1rem 0 0;
+  }
+  .rule{
+    border:none;
+    border-top:1px solid var(--rule);
+    margin:1.5rem 0;
+  }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:.5rem;
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    background:transparent;
+    border:1px solid var(--rule);
+    border-radius:999px;
+    padding:6px 13px 6px 10px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    letter-spacing:.03em;
+    color:var(--ink-soft);
+    transition:border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .chip:hover{border-color:var(--ink-soft)}
+  .chip .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-soft);flex:0 0 auto}
+  .chip[data-filter="prehispanica"] .dot{background:var(--terracotta)}
+  .chip[data-filter="virreinato"] .dot{background:var(--brass)}
+  .chip[data-filter="independencia"] .dot{background:var(--oxblood)}
+  .chip[data-filter="caudillismo"] .dot{background:var(--gold)}
+  .chip[data-filter="porfiriato"] .dot{background:var(--slate)}
+  .chip[data-filter="revolucion"] .dot{background:var(--bottle)}
+  .chip[data-filter="postrev"] .dot{background:var(--indigo)}
+  .chip[data-filter="contemporaneo"] .dot{background:#4A6741}
+  .chip.active{color:var(--ink);border-color:var(--ink);background:var(--paper-card)}
+
+  /* ---------- timeline ---------- */
+  .timeline-wrap{
+    background:var(--paper-deep);
+    border-top:1px solid var(--rule);
+    border-bottom:1px solid var(--rule);
+  }
+  .timeline-scroll{
+    overflow-x:auto;
+    overflow-y:hidden;
+    scrollbar-width:thin;
+  }
+  .timeline-track{
+    position:relative;
+    display:flex;
+    align-items:flex-start;
+    gap:36px;
+    padding:36px 40px 28px;
+    min-width:max-content;
+    margin:0 auto;
+  }
+  .track-line{
+    position:absolute;
+    left:0; right:0; top:88px;
+    height:2px;
+    background:var(--ink-soft);
+    opacity:.5;
+    z-index:0;
+  }
+  .marker{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    width:92px;
+    flex:0 0 auto;
+    background:none;
+    border:none;
+    padding:0;
+    z-index:1;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .marker-year{
+    display:block;
+    font-family:var(--font-mono);
+    font-size:11px;
+    line-height:13px;
+    letter-spacing:.02em;
+    color:var(--ink-soft);
+    margin-bottom:9px;
+    white-space:nowrap;
+    text-align:center;
+  }
+  .seal{
+    width:52px;height:52px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--paper-card);
+    border:2px solid currentColor;
+    box-shadow:0 0 0 3px var(--paper-deep), 0 0 0 5px currentColor;
+    transition:transform .18s ease, background .18s ease;
+  }
+  .seal-icon{width:24px;height:24px;color:currentColor}
+  .seal-icon *{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .c-prehispanica{color:var(--terracotta)}
+  .c-virreinato{color:var(--brass)}
+  .c-independencia{color:var(--oxblood)}
+  .c-caudillismo{color:var(--gold)}
+  .c-porfiriato{color:var(--slate)}
+  .c-revolucion{color:var(--bottle)}
+  .c-postrev{color:var(--indigo)}
+  .c-contemporaneo{color:#4A6741}
+  .marker:hover .seal,
+  .marker:focus-visible .seal{transform:translateY(-3px) scale(1.06)}
+  .marker:focus-visible{outline:none}
+  .marker.active .seal{background:currentColor}
+  .marker.active .seal-icon{color:var(--paper-card)}
+  .marker.active .marker-year{color:var(--ink);font-weight:700}
+  .marker.active::after{
+    content:'';
+    position:absolute;
+    bottom:-12px; left:50%;
+    width:8px;height:8px;
+    background:currentColor;
+    transform:translateX(-50%) rotate(45deg);
+  }
+  .marker.dimmed{opacity:.28;filter:grayscale(.6)}
+
+  /* ---------- dossier ---------- */
+  .dossier-section{
+    max-width:960px;
+    margin:0 auto;
+    padding:2.4rem 2rem 3.2rem;
+  }
+  .dossier-card{
+    position:relative;
+    background:var(--paper-card);
+    border:1px solid var(--rule);
+    border-radius:4px;
+    padding:2rem 2.2rem 2.2rem;
+    transition:opacity .2s ease, transform .2s ease;
+  }
+  .dossier-card.swap{opacity:0;transform:translateY(8px)}
+  .file-tab{
+    position:absolute;
+    top:-12px; right:22px;
+    background:var(--ink);
+    color:var(--paper-card);
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.06em;
+    padding:4px 11px;
+    border-radius:2px;
+  }
+  .dossier-head{
+    display:flex;
+    align-items:center;
+    gap:18px;
+    margin-bottom:1.3rem;
+  }
+  .seal.big{width:68px;height:68px;flex:0 0 auto}
+  .seal.big .seal-icon{width:32px;height:32px}
+  .d-eyebrow{
+    font-family:var(--font-mono);
+    font-size:12px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    margin:0 0 .35rem;
+    color:var(--ink-soft);
+  }
+  .d-eyebrow .accent{font-weight:700}
+  .dossier-head h2{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:1.55rem;
+    margin:0;
+    line-height:1.2;
+  }
+  .d-body{
+    font-size:1.02rem;
+    color:var(--ink);
+    max-width:68ch;
+    margin:0 0 1.2rem;
+  }
+  .d-body p{margin:0 0 .85rem}
+  .d-body ul{
+    margin:.4rem 0 1rem;
+    padding-left:1.2rem;
+  }
+  .d-body li{margin-bottom:.35rem}
+  .d-facts{
+    list-style:none;
+    margin:0 0 1.4rem; padding:0;
+    display:flex; flex-wrap:wrap; gap:7px;
+  }
+  .d-facts li{
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    padding:5px 10px;
+    border-radius:3px;
+  }
+  .images-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;
+    margin-top:1.2rem;
+  }
+  .img-card{
+    background:var(--paper);
+    border:1px solid var(--rule);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .img-card img{
+    width:100%;
+    height:130px;
+    object-fit:cover;
+    display:block;
+    background:#d4c9a8;
+  }
+  .img-card figcaption{
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    padding:7px 9px;
+    color:var(--ink-soft);
+    line-height:1.35;
+  }
+  .note{
+    font-size:.9rem;
+    color:var(--ink-soft);
+    font-style:italic;
+    margin-top:1.1rem;
+    border-top:1px solid var(--rule);
+    padding-top:.9rem;
+  }
+
+  @media (max-width:640px){
+    .masthead{padding:2rem 1.1rem 1.2rem}
+    h1{font-size:2.2rem}
+    .dek{font-size:.98rem}
+    .dossier-section{padding:1.5rem 1.1rem 2.2rem}
+    .dossier-card{padding:1.4rem 1.15rem 1.5rem}
+    .dossier-head{flex-direction:column;align-items:flex-start;gap:12px}
+    .dossier-head h2{font-size:1.25rem}
+  }
+
+  footer{
+    text-align:center;
+    padding:1.8rem 1rem 2.8rem;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.03em;
+    color:var(--ink-soft);
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Prehispánica -->
+    <symbol id="icon-pyramid" viewBox="0 0 40 40">
+      <path d="M6 32h28L20 8z"/>
+      <line x1="14" y1="24" x2="26" y2="24"/>
+      <line x1="17" y1="18" x2="23" y2="18"/>
+    </symbol>
+    <!-- Virreinato -->
+    <symbol id="icon-crown" viewBox="0 0 40 40">
+      <path d="M8 28h24v4H8z"/>
+      <path d="M10 28l4-12 6 7 6-7 4 12"/>
+      <circle cx="14" cy="14" r="1.5"/>
+      <circle cx="20" cy="11" r="1.5"/>
+      <circle cx="26" cy="14" r="1.5"/>
+    </symbol>
+    <!-- Independencia -->
+    <symbol id="icon-torch" viewBox="0 0 40 40">
+      <line x1="20" y1="14" x2="20" y2="32"/>
+      <path d="M14 14c0-5 3-8 6-8s6 3 6 8c-2 2-4 3-6 3s-4-1-6-3z"/>
+      <path d="M16 32h8"/>
+    </symbol>
+    <!-- Caudillismo -->
+    <symbol id="icon-sword" viewBox="0 0 40 40">
+      <line x1="12" y1="28" x2="28" y2="12"/>
+      <path d="M26 10l4 4"/>
+      <path d="M10 26l4 4"/>
+      <line x1="14" y1="30" x2="10" y2="34"/>
+      <line x1="16" y1="28" x2="12" y2="32"/>
+    </symbol>
+    <!-- Porfiriato -->
+    <symbol id="icon-train" viewBox="0 0 40 40">
+      <rect x="8" y="16" width="24" height="12" rx="2"/>
+      <circle cx="14" cy="30" r="3"/>
+      <circle cx="26" cy="30" r="3"/>
+      <line x1="12" y1="16" x2="12" y2="10"/>
+      <path d="M12 10h10l4 6"/>
+    </symbol>
+    <!-- Revolución -->
+    <symbol id="icon-star" viewBox="0 0 40 40">
+      <path d="M20 8l3 9h9l-7 5 3 9-8-6-8 6 3-9-7-5h9z"/>
+    </symbol>
+    <!-- Postrev -->
+    <symbol id="icon-building" viewBox="0 0 40 40">
+      <path d="M8 32V14l12-6 12 6v18"/>
+      <line x1="14" y1="20" x2="14" y2="26"/>
+      <line x1="20" y1="18" x2="20" y2="26"/>
+      <line x1="26" y1="20" x2="26" y2="26"/>
+      <line x1="8" y1="32" x2="32" y2="32"/>
+    </symbol>
+    <!-- Contemporáneo -->
+    <symbol id="icon-modern" viewBox="0 0 40 40">
+      <rect x="10" y="12" width="8" height="20"/>
+      <rect x="22" y="8" width="8" height="24"/>
+      <line x1="12" y1="16" x2="16" y2="16"/>
+      <line x1="12" y1="20" x2="16" y2="20"/>
+      <line x1="24" y1="12" x2="28" y2="12"/>
+      <line x1="24" y1="16" x2="28" y2="16"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="masthead">
+  <p class="eyebrow">Expediente histórico · México</p>
+  <h1>Ecos de México<em>línea de tiempo interactiva</em></h1>
+  <p class="dek">Desde las culturas prehispánicas hasta el México de hoy. Toca un sello en la línea para abrir el expediente de cada época y ver la información completa con imágenes.</p>
+  <hr class="rule">
+  <div class="legend" role="group" aria-label="Filtrar por periodo">
+    <button class="chip active" data-filter="all"><span class="dot"></span>Todo</button>
+    <button class="chip" data-filter="prehispanica"><span class="dot"></span>Prehispánica</button>
+    <button class="chip" data-filter="virreinato"><span class="dot"></span>Virreinato</button>
+    <button class="chip" data-filter="independencia"><span class="dot"></span>Independencia</button>
+    <button class="chip" data-filter="caudillismo"><span class="dot"></span>Caudillismo</button>
+    <button class="chip" data-filter="porfiriato"><span class="dot"></span>Porfiriato</button>
+    <button class="chip" data-filter="revolucion"><span class="dot"></span>Revolución</button>
+    <button class="chip" data-filter="postrev"><span class="dot"></span>Postrevolución</button>
+    <button class="chip" data-filter="contemporaneo"><span class="dot"></span>Contemporáneo</button>
+  </div>
+</header>
+
+<section class="timeline-wrap" aria-label="Línea de tiempo de la Historia de México">
+  <div class="timeline-scroll">
+    <div class="timeline-track">
+      <div class="track-line" aria-hidden="true"></div>
+
+      <button class="marker" data-id="1" data-cat="prehispanica">
+        <span class="marker-year">~2500 a.C.</span>
+        <span class="seal c-prehispanica"><svg class="seal-icon" aria-hidden="true"><use href="#icon-pyramid"/></svg></span>
+        <span class="sr-only">Época Prehispánica</span>
+      </button>
+
+      <button class="marker" data-id="2" data-cat="virreinato">
+        <span class="marker-year">1521</span>
+        <span class="seal c-virreinato"><svg class="seal-icon" aria-hidden="true"><use href="#icon-crown"/></svg></span>
+        <span class="sr-only">Conquista y Virreinato</span>
+      </button>
+
+      <button class="marker" data-id="3" data-cat="independencia">
+        <span class="marker-year">1810</span>
+        <span class="seal c-independencia"><svg class="seal-icon" aria-hidden="true"><use href="#icon-torch"/></svg></span>
+        <span class="sr-only">Independencia</span>
+      </button>
+
+      <button class="marker" data-id="4" data-cat="caudillismo">
+        <span class="marker-year">1821</span>
+        <span class="seal c-caudillismo"><svg class="seal-icon" aria-hidden="true"><use href="#icon-sword"/></svg></span>
+        <span class="sr-only">Caudillismo</span>
+      </button>
+
+      <button class="marker" data-id="5" data-cat="porfiriato">
+        <span class="marker-year">1876</span>
+        <span class="seal c-porfiriato"><svg class="seal-icon" aria-hidden="true"><use href="#icon-train"/></svg></span>
+        <span class="sr-only">Porfiriato</span>
+      </button>
+
+      <button class="marker" data-id="6" data-cat="revolucion">
+        <span class="marker-year">1910</span>
+        <span class="seal c-revolucion"><svg class="seal-icon" aria-hidden="true"><use href="#icon-star"/></svg></span>
+        <span class="sr-only">Revolución Mexicana</span>
+      </button>
+
+      <button class="marker" data-id="7" data-cat="postrev">
+        <span class="marker-year">1920</span>
+        <span class="seal c-postrev"><svg class="seal-icon" aria-hidden="true"><use href="#icon-building"/></svg></span>
+        <span class="sr-only">México Postrevolucionario</span>
+      </button>
+
+      <button class="marker" data-id="8" data-cat="contemporaneo">
+        <span class="marker-year">1940</span>
+        <span class="seal c-contemporaneo"><svg class="seal-icon" aria-hidden="true"><use href="#icon-modern"/></svg></span>
+        <span class="sr-only">México Contemporáneo</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<section class="dossier-section">
+  <article class="dossier-card" id="dossier" aria-live="polite">
+    <span class="file-tab">Expediente n.º <span id="d-num">01</span></span>
+    <div class="dossier-head">
+      <span class="seal big c-prehispanica" id="d-seal"><svg class="seal-icon" aria-hidden="true"><use id="d-icon-use" href="#icon-pyramid"/></svg></span>
+      <div>
+        <p class="d-eyebrow"><span class="accent" id="d-date">~2500 a.C. – 1521</span> &nbsp;·&nbsp; <span id="d-cat">Época Prehispánica</span></p>
+        <h2 id="d-title">Culturas de Mesoamérica</h2>
+      </div>
+    </div>
+    <div class="d-body" id="d-body"></div>
+    <ul class="d-facts" id="d-facts"></ul>
+    <div class="images-grid" id="d-images"></div>
+    <p class="note" id="d-note"></p>
+  </article>
+</section>
+
+<footer>
+  Elaborado a partir de apuntes de Historia de México · Línea de tiempo interactiva para repaso
+</footer>
+
+<script>
+const DATA = {
+  "1": {
+    cat: "prehispanica",
+    catLabel: "Época Prehispánica",
+    date: "~2500 a.C. – 1521",
+    title: "Culturas de Mesoamérica",
+    icon: "icon-pyramid",
+    body: `
+      <p>En Mesoamérica se desarrollaron sociedades complejas divididas en tres grandes periodos:</p>
+      <ul>
+        <li><strong>Preclásico (~2500 a.C. – 200 d.C.):</strong> Dominado por la cultura Olmeca (“cultura madre”) en las costas del Golfo (La Venta, Tres Zapotes). Surgen las primeras jerarquías sociales, el juego de pelota y las cabezas colosales.</li>
+        <li><strong>Clásico (~200 – 900 d.C.):</strong> Florecimiento de grandes metrópolis. Destacan Teotihuacán y los mayas del sureste (escritura jeroglífica, el concepto del cero y avanzada astronomía).</li>
+        <li><strong>Posclásico (~900 – 1521 d.C.):</strong> Periodo de militarización. Destacan los <strong>mixtecos</strong> (Ñuu Savi – “Pueblo de la Lluvia”) en Oaxaca/Puebla/Guerrero, organizados en señoríos independientes (Tilantongo, Tututepec), excelentes orfebres y creadores de códices en piel de venado (Códice Zouche-Nuttall). Los <strong>mexicas</strong> fundan México-Tenochtitlan en 1325 y construyen un imperio mediante la Triple Alianza.</li>
+      </ul>
+      <p>Sitios destacados: Monte Albán (reutilizado por mixtecos, Tumba 7), Mitla (grecas geométricas) y Yagul.</p>
+    `,
+    facts: ["Olmecas = cultura madre", "Teotihuacán y mayas (Clásico)", "Mixtecos y mexicas (Posclásico)", "Tenochtitlan 1325"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4a/Head_Olmec.jpg/320px-Head_Olmec.jpg", cap: "Cabeza colosal olmeca"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b3/Piramide_del_Sol_Teotihuacan.jpg/320px-Piramide_del_Sol_Teotihuacan.jpg", cap: "Pirámide del Sol, Teotihuacán"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Codex_Zouche-Nuttall.jpg/320px-Codex_Zouche-Nuttall.jpg", cap: "Códice Zouche-Nuttall (mixteco)"}
+    ],
+    note: "Los mixtecos destacaron como los mejores orfebres del México antiguo y por sus códices genealógicos."
+  },
+  "2": {
+    cat: "virreinato",
+    catLabel: "Conquista y Virreinato",
+    date: "1521 – 1810",
+    title: "Nueva España",
+    icon: "icon-crown",
+    body: `
+      <p><strong>La Conquista (1519–1521):</strong> Hernán Cortés desembarca en Veracruz, forma alianzas con pueblos sometidos por los mexicas (tlaxcaltecas) y logra la caída de Tenochtitlan el 13 de agosto de 1521.</p>
+      <p><strong>El Virreinato de la Nueva España:</strong></p>
+      <ul>
+        <li><strong>Economía:</strong> Minería de plata (Zacatecas, Guanajuato) y sistema de haciendas/encomiendas.</li>
+        <li><strong>Sociedad de castas:</strong> Fuerte desigualdad entre peninsulares, criollos, mestizos, indígenas y africanos.</li>
+        <li><strong>Sincretismo:</strong> Evangelización por franciscanos y dominicos que dio origen al México mestizo cultural y religioso.</li>
+      </ul>
+    `,
+    facts: ["Caída de Tenochtitlan 13 ago 1521", "Virreinato de Nueva España", "Minería de plata", "Sociedad de castas"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Conquista_de_Mexico.jpg/320px-Conquista_de_Mexico.jpg", cap: "La Conquista (pintura histórica)"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1e/Plaza_Mayor_de_Mexico.jpg/320px-Plaza_Mayor_de_Mexico.jpg", cap: "Ciudad de México colonial"}
+    ],
+    note: "El orden colonial duró casi 300 años y transformó profundamente la sociedad, la religión y la economía."
+  },
+  "3": {
+    cat: "independencia",
+    catLabel: "Independencia",
+    date: "1810 – 1821",
+    title: "Guerra de Independencia",
+    icon: "icon-torch",
+    body: `
+      <p>Movimiento dividido en cuatro etapas:</p>
+      <ul>
+        <li><strong>Iniciación (1810–1811):</strong> Miguel Hidalgo y Costilla lanza el Grito de Dolores (16 de septiembre de 1810).</li>
+        <li><strong>Organización (1811–1815):</strong> José María Morelos da forma política al movimiento: <em>Sentimientos de la Nación</em> (1813) y Constitución de Apatzingán (1814).</li>
+        <li><strong>Resistencia (1815–1820):</strong> Guerra de guerrillas liderada por Vicente Guerrero y Guadalupe Victoria.</li>
+        <li><strong>Consumación (1821):</strong> Agustín de Iturbide pacta con Guerrero (Abrazo de Acatempan) y proclama el <strong>Plan de Iguala</strong> (Tres Garantías: Religión, Independencia y Unión). Se crea el Ejército Trigarante. Los Tratados de Córdoba (agosto 1821) reconocen la Independencia. El 27 de septiembre de 1821 el Ejército Trigarante entra a la Ciudad de México.</li>
+      </ul>
+    `,
+    facts: ["Grito de Dolores 16 sep 1810", "Plan de Iguala 24 feb 1821", "Tres Garantías", "27 sep 1821 consumación"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9e/Hidalgo_independencia.jpg/320px-Hidalgo_independencia.jpg", cap: "Miguel Hidalgo"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Plan_de_Iguala.jpg/320px-Plan_de_Iguala.jpg", cap: "Bandera de las Tres Garantías"}
+    ],
+    note: "El Plan de Iguala unió a realistas e insurgentes bajo las Tres Garantías: Religión, Independencia y Unión."
+  },
+  "4": {
+    cat: "caudillismo",
+    catLabel: "Caudillismo",
+    date: "1821 – 1876",
+    title: "Era de los caudillos",
+    icon: "icon-sword",
+    body: `
+      <p>Tras la Independencia, México carecía de instituciones sólidas. Surgieron “hombres fuertes” militares (caudillos) que gobernaban por la fuerza y el carisma.</p>
+      <ul>
+        <li><strong>Lucha de ideologías:</strong> Conservadores (centralistas, privilegios del clero y ejército) vs Liberales (república federal, laica y democrática).</li>
+        <li><strong>Antonio López de Santa Anna:</strong> Dominó el periodo ocupando la presidencia en 11 ocasiones.</li>
+        <li><strong>Consecuencias:</strong> Pérdida de más de la mitad del territorio (Guerra con EE.UU. 1846–1848, Tratado de Guadalupe Hidalgo). Independencia de Texas (1836), Guerra de los Pasteles (1838).</li>
+        <li><strong>Reforma Liberal:</strong> Benito Juárez, Leyes de Reforma, Constitución de 1857, Guerra de Reforma (1858–1861) e Intervención Francesa / Imperio de Maximiliano (1862–1867). Juárez restaura la República en 1867.</li>
+      </ul>
+    `,
+    facts: ["Santa Anna (11 veces presidente)", "Pérdida de territorio 1848", "Leyes de Reforma", "Juárez restaura la República"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5e/Antonio_Lopez_de_Santa_Anna.jpg/320px-Antonio_Lopez_de_Santa_Anna.jpg", cap: "Antonio López de Santa Anna"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Benito_Juarez.jpg/320px-Benito_Juarez.jpg", cap: "Benito Juárez"}
+    ],
+    note: "El caudillismo terminó con la llegada de Juárez y la consolidación de un Estado de derecho secular."
+  },
+  "5": {
+    cat: "porfiriato",
+    catLabel: "Porfiriato",
+    date: "1876 – 1911",
+    title: "La dictadura de Porfirio Díaz",
+    icon: "icon-train",
+    body: `
+      <p>Porfirio Díaz llega al poder con el Plan de Tuxtepec (1876). Bajo la consigna “Poca política, mucha administración”, pacificó el país por la fuerza (“paz porfiriana”) y se rodeó de los “Científicos” (positivistas).</p>
+      <ul>
+        <li><strong>Desarrollo económico:</strong> Red ferroviaria de ~600 km a más de 20,000 km. Inversión extranjera masiva (EE.UU., Gran Bretaña, Francia) en minería, petróleo y textiles.</li>
+        <li><strong>Contradicciones sociales:</strong> Despojo de tierras comunales (Leyes de Deslinde), latifundios, explotación laboral. Huelgas de Cananea (1906) y Río Blanco (1907) como antecedentes de la Revolución.</li>
+      </ul>
+    `,
+    facts: ["Plan de Tuxtepec 1876", "+20,000 km de ferrocarriles", "Los Científicos", "Cananea y Río Blanco"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1c/Porfirio_Diaz.jpg/320px-Porfirio_Diaz.jpg", cap: "Porfirio Díaz"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Ferrocarril_Mexicano.jpg/320px-Ferrocarril_Mexicano.jpg", cap: "Ferrocarriles porfirianos"}
+    ],
+    note: "El progreso material se construyó sobre una profunda desigualdad social y la represión política."
+  },
+  "6": {
+    cat: "revolucion",
+    catLabel: "Revolución Mexicana",
+    date: "1910 – 1920",
+    title: "La Revolución y la Constitución de 1917",
+    icon: "icon-star",
+    body: `
+      <p>El descontento por la reelección de Díaz llevó a Francisco I. Madero a promulgar el Plan de San Luis (levantamiento el 20 de noviembre de 1910).</p>
+      <ul>
+        <li><strong>Maderismo:</strong> Díaz renuncia en 1911. Madero enfrenta a Zapata (Plan de Ayala) y a antiguos porfiristas.</li>
+        <li><strong>Decena Trágica (1913):</strong> Golpe de Victoriano Huerta y asesinato de Madero.</li>
+        <li><strong>Constitucionalismo:</strong> Carranza (Plan de Guadalupe) forma el Ejército Constitucionalista junto a Villa y Zapata para derrocar a Huerta.</li>
+        <li><strong>Constitución de 1917</strong> (5 de febrero, Querétaro): Pionera en derechos sociales.
+          <ul>
+            <li>Art. 3°: Educación laica, gratuita y obligatoria.</li>
+            <li>Art. 27°: Propiedad de la tierra y recursos naturales para la Nación (base de la reforma agraria).</li>
+            <li>Art. 123°: Derechos laborales (jornada de 8 horas, salario mínimo…).</li>
+          </ul>
+        </li>
+      </ul>
+      <p>Caudillos revolucionarios: Zapata (“Tierra y Libertad”), Villa (Ejército del Norte), Carranza y Obregón.</p>
+    `,
+    facts: ["20 nov 1910", "Constitución 5 feb 1917", "Art. 3°, 27° y 123°", "Zapata, Villa, Carranza"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Francisco_I_Madero.jpg/320px-Francisco_I_Madero.jpg", cap: "Francisco I. Madero"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Emiliano_Zapata.jpg/320px-Emiliano_Zapata.jpg", cap: "Emiliano Zapata"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5c/Constitucion_1917.jpg/320px-Constitucion_1917.jpg", cap: "Promulgación de la Constitución 1917"}
+    ],
+    note: "La Constitución de 1917 es una de las primeras del mundo en incorporar derechos sociales de manera explícita."
+  },
+  "7": {
+    cat: "postrev",
+    catLabel: "México Postrevolucionario",
+    date: "1920 – 1940",
+    title: "Del caudillismo a las instituciones",
+    icon: "icon-building",
+    body: `
+      <p><strong>Grupo Sonora:</strong> Álvaro Obregón (1920–1924) y Plutarco Elías Calles (1924–1928).</p>
+      <ul>
+        <li><strong>Guerra Cristera (1926–1929):</strong> Conflicto por las leyes anticlericales de Calles. Campesinos se levantan al grito de “¡Viva Cristo Rey!”. Aprox. 250,000 muertos. Acuerdos de 1929.</li>
+        <li><strong>Asesinato de Obregón</strong> (17 jul 1928) por José de León Toral.</li>
+        <li><strong>El Maximato (1928–1934):</strong> Calles gobierna como “Jefe Máximo” a través de tres presidentes: Portes Gil, Ortiz Rubio y Abelardo Rodríguez.</li>
+        <li><strong>Fundación del PNR (1929):</strong> Antecesor del PRM y del PRI. Objetivo: resolver disputas de poder por la vía política, no armada.</li>
+        <li><strong>Cardenismo (1934–1940):</strong> Lázaro Cárdenas rompe con Calles (lo expulsa en 1936), realiza la Expropiación Petrolera (18 mar 1938) y una masiva reforma agraria. Transforma el PNR en PRM.</li>
+      </ul>
+    `,
+    facts: ["Guerra Cristera 1926-29", "Maximato 1928-34", "PNR 1929", "Expropiación petrolera 1938"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/Plutarco_Elias_Calles.jpg/320px-Plutarco_Elias_Calles.jpg", cap: "Plutarco Elías Calles"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/9a/Lazaro_Cardenas.jpg/320px-Lazaro_Cardenas.jpg", cap: "Lázaro Cárdenas"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Expropiacion_Petrolera.jpg/320px-Expropiacion_Petrolera.jpg", cap: "Expropiación Petrolera 1938"}
+    ],
+    note: "Calles dijo que México debía pasar de ser “un país de un solo hombre” a “un país de instituciones”."
+  },
+  "8": {
+    cat: "contemporaneo",
+    catLabel: "México Contemporáneo",
+    date: "1940 – Siglo XXI",
+    title: "Presidencialismo y transición",
+    icon: "icon-modern",
+    body: `
+      <ul>
+        <li><strong>Milagro Mexicano (1940–1970):</strong> Crecimiento económico sostenido con el modelo de Sustitución de Importaciones e industrialización.</li>
+        <li><strong>Crisis y movimientos (1968–1982):</strong> Movimiento Estudiantil de 1968 (2 de octubre en Tlatelolco). Crisis económicas y devaluaciones a finales de los 70 y principios de los 80.</li>
+        <li><strong>Neoliberalismo y transición democrática (1982 en adelante):</strong> Apertura comercial (TLCAN 1994), levantamiento del EZLN en Chiapas (1994). Alternancia política en 2000: fin de más de 70 años de hegemonía del PRI con la victoria del PAN.</li>
+      </ul>
+    `,
+    facts: ["Milagro Mexicano", "Tlatelolco 1968", "TLCAN 1994", "Alternancia 2000"],
+    images: [
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6e/Tlatelolco_1968.jpg/320px-Tlatelolco_1968.jpg", cap: "Movimiento estudiantil 1968"},
+      {src: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/TLCAN.jpg/320px-TLCAN.jpg", cap: "Firma del TLCAN"}
+    ],
+    note: "El siglo XX terminó con la transición de un sistema de partido hegemónico a una democracia de alternancia."
+  }
+};
+
+const CAT_BG = {
+  prehispanica: "var(--terracotta-bg)",
+  virreinato: "var(--brass-bg)",
+  independencia: "var(--oxblood-bg)",
+  caudillismo: "var(--gold-bg)",
+  porfiriato: "var(--slate-bg)",
+  revolucion: "var(--bottle-bg)",
+  postrev: "var(--indigo-bg)",
+  contemporaneo: "#E8F0E6"
+};
+const CAT_TEXT = {
+  prehispanica: "var(--terracotta)",
+  virreinato: "var(--brass)",
+  independencia: "var(--oxblood)",
+  caudillismo: "var(--gold)",
+  porfiriato: "var(--slate)",
+  revolucion: "var(--bottle)",
+  postrev: "var(--indigo)",
+  contemporaneo: "#4A6741"
+};
+
+const markers = document.querySelectorAll(".marker");
+const dossier = document.getElementById("dossier");
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function render(id) {
+  const d = DATA[id];
+  if (!d) return;
+
+  function apply() {
+    document.getElementById("d-num").textContent = id.length < 2 ? "0" + id : id;
+    document.getElementById("d-date").textContent = d.date;
+    document.getElementById("d-cat").textContent = d.catLabel;
+    document.getElementById("d-title").textContent = d.title;
+    document.getElementById("d-body").innerHTML = d.body;
+    document.getElementById("d-note").textContent = d.note || "";
+
+    const seal = document.getElementById("d-seal");
+    seal.className = "seal big c-" + d.cat;
+    const use = document.getElementById("d-icon-use");
+    use.setAttribute("href", "#" + d.icon);
+
+    const factsList = document.getElementById("d-facts");
+    factsList.innerHTML = "";
+    d.facts.forEach(f => {
+      const li = document.createElement("li");
+      li.textContent = f;
+      li.style.background = CAT_BG[d.cat];
+      li.style.color = CAT_TEXT[d.cat];
+      factsList.appendChild(li);
+    });
+
+    const imgGrid = document.getElementById("d-images");
+    imgGrid.innerHTML = "";
+    if (d.images && d.images.length) {
+      d.images.forEach(img => {
+        const fig = document.createElement("figure");
+        fig.className = "img-card";
+        fig.innerHTML = `<img src="${img.src}" alt="${img.cap}" loading="lazy" onerror="this.parentElement.style.display='none'">
+                         <figcaption>${img.cap}</figcaption>`;
+        imgGrid.appendChild(fig);
+      });
+    }
+
+    markers.forEach(m => {
+      m.classList.toggle("active", m.getAttribute("data-id") === id);
+    });
+
+    if (!reduceMotion) {
+      dossier.classList.remove("swap");
+      requestAnimationFrame(() => dossier.classList.add("swap"));
+      setTimeout(() => dossier.classList.remove("swap"), 20);
+    }
+  }
+  apply();
+}
+
+markers.forEach(m => {
+  m.addEventListener("click", () => {
+    const id = m.getAttribute("data-id");
+    render(id);
+    const rect = dossier.getBoundingClientRect();
+    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+      dossier.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    }
+  });
+});
+
+document.querySelectorAll(".chip").forEach(chip => {
+  chip.addEventListener("click", () => {
+    document.querySelectorAll(".chip").forEach(c => c.classList.remove("active"));
+    chip.classList.add("active");
+    const f = chip.getAttribute("data-filter");
+    markers.forEach(m => {
+      const match = (f === "all" || m.getAttribute("data-cat") === f);
+      m.classList.toggle("dimmed", !match);
+    });
+  });
+});
+
+render("1");
+</script>
+</body>
+</html>
