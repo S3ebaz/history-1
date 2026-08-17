@@ -1,4 +1,4 @@
-# Ecos de México  
+# Bitácora de México  
 ### Línea de tiempo interactiva · Historia de México
 
 Sitio web interactivo que presenta la **Historia de México desde el Caudillismo (1821) hasta el presente**.
